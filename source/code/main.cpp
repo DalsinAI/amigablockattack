@@ -61,7 +61,9 @@ https://blockattack.net
 #include "common.h"
 #include "gamecontroller.h"
 #include <boost/algorithm/string.hpp>
+#ifndef __amigaos__ /* no Boost.Program_options here: ParseArguments() below */
 #include <boost/program_options.hpp>
+#endif
 #include <fstream>
 #include "levelselect.hpp"
 
@@ -77,6 +79,11 @@ GlobalData globalData;
 static int InitImages(sago::SagoSpriteHolder& holder);
 
 static void FsSearchParthMainAppend(std::vector<std::string>& paths) {
+#ifdef __amigaos__
+	/* the game's data, unpacked, in the program's drawer */
+	paths.push_back("PROGDIR:data");
+	return;
+#endif
 	paths.push_back((std::string)SHAREDIR+"/blockattack.data");
 	paths.push_back((std::string)PHYSFS_getBaseDir()+"/blockattack.data");
 	paths.push_back((std::string)PHYSFS_getBaseDir()+"/data");
@@ -832,6 +839,37 @@ struct globalConfig {
 	bool softwareRenderer = false;
 };
 
+#ifdef __amigaos__
+/* The options a Shell user may want, read by hand. */
+static void ParseArguments(int argc, char* argv[], globalConfig& conf) {
+	for (int i = 1; i < argc; i++) {
+		std::string a = argv[i];
+		if (a == "--nosound") {
+			globalData.NoSound = true;
+		}
+		else if (a == "--software-renderer") {
+			conf.softwareRenderer = true;
+		}
+		else if (a == "--verbose-basic") {
+			globalData.verboseLevel++;
+		}
+		else if (a == "--no-auto-scale") {
+			conf.autoScale = false;
+		}
+		else if (a == "--always-sixteen-nine") {
+			globalData.alwaysSixteenNine = true;
+		}
+		else if (a == "--version") {
+			std::cout << "blockattack " << VERSION_NUMBER << "\n";
+			exit(0);
+		}
+		else {
+			std::cout << "Usage: " << argv[0] << " [--nosound] [--software-renderer] [--verbose-basic] [--no-auto-scale] [--always-sixteen-nine] [--version]\n";
+			exit(a == "--help" || a == "-h" || a == "?" ? 0 : 5);
+		}
+	}
+}
+#else
 static void ParseArguments(int argc, char* argv[], globalConfig& conf) {
 	int consoleWidth = boost::program_options::options_description::m_default_line_length;
 	const char* columnsEnv = getenv("COLUMNS"); // Allows using "COLUMNS=300 help2man" for generating the man page without bad line breaks.
@@ -962,6 +1000,7 @@ static void ParseArguments(int argc, char* argv[], globalConfig& conf) {
 	}
 
 }
+#endif
 
 //Physfs 2.0.z does not have PHYSFS_unmount
 #if (PHYSFS_VER_MAJOR <= 2) && (PHYSFS_VER_MINOR < 1)
@@ -981,7 +1020,14 @@ static void writeStateFile(const char* executable, const char* basedir) {
 }
 
 //Warning: the arguments to main must be "int argc, char* argv[]" NO CONST! or SDL_main will fail to find it
+#ifdef __amigaos__
+extern "C" void amiga_start(void); // amiga/amiga_start.c
+#endif
+
 int main(int argc, char* argv[]) {
+#ifdef __amigaos__
+	amiga_start();
+#endif
 	try {
 		//Init the file system abstraction layer
 		PHYSFS_init(argv[0]);

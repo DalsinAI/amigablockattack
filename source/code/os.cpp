@@ -24,7 +24,7 @@ https://blockattack.net
 #include "os.hpp"
 #include <iostream>
 #include <physfs.h>
-#include "platform_folders.h"
+#include "platform_folders.h" /* Amiga: amiga/include/platform_folders.h */
 #include "version.h"
 #include "common.h"
 
@@ -34,8 +34,13 @@ https://blockattack.net
 #endif
 #include <boost/algorithm/string.hpp>
 #include <dirent.h>
+#ifdef __amigaos__
+#include <sys/stat.h>
+#endif
 
+#ifndef __amigaos__
 static sago::PlatformFolders pf;
+#endif
 
 static std::string overrideSavePath = "";
 
@@ -49,7 +54,12 @@ std::string getPathToSaveFiles() {
 	if (overrideSavePath.length() > 0) {
 		return overrideSavePath;
 	}
+#ifdef __amigaos__
+	/* settings, scores and replays in the program's drawer */
+	return "PROGDIR:user";
+#else
 	return pf.getSaveGamesFolder1()+"/"+GAMENAME;
+#endif
 }
 
 std::string getPathToStateFiles() {
@@ -131,6 +141,14 @@ void OsCreateFolder(const std::string& path) {
 		pos = new_path.find("\\",pos+1);
 	}
 	CreateDirectoryW(win32_utf8_to_utf16(path.c_str()).c_str(), NULL);
+#elif defined(__amigaos__)
+	/* each drawer on the way, as mkdir -p would */
+	for (size_t pos = path.find('/'); ; pos = path.find('/', pos + 1)) {
+		mkdir(path.substr(0, pos).c_str(), 0777);
+		if (pos == std::string::npos) {
+			break;
+		}
+	}
 #else
 	std::string cmd = "mkdir -p '"+path+"/'";
 	int retcode = system(cmd.c_str());

@@ -1,0 +1,99 @@
+# Block Attack - Rise of the Blocks 2.9.1 for AmigaOS 3.x, 68040/68060 +
+# FPU, on OpenGPU's SDL 2.
+#
+#   make -f amiga/Makefile.amigaos -j2 dist \
+#        STOVE=/path/to/openamigagcc-16.2.0-open4 \
+#        NDK=/path/to/OpenNDK/Include_H SDL2KIT=/path/to/opengpu-sdk
+#
+# CMake is not run: these are CMakeLists.txt's sources (source/code and
+# source/code/sago), its C++11 and the embedded {fmt} 8.1.1. SDL2KIT is the
+# OpenGPU developer kit (SDL2, SDL2_image, SDL2_mixer, SDL2_ttf: the
+# program's halves of LIBS:OpenGPU's modules). PhysicsFS 3.2.0 is compiled
+# in from amiga/physfs (the Team's, with its AmigaOS platform file, as in
+# amigadxxrebirth). No gettext (amiga/include/libintl.h: English) and no
+# Boost (amiga/include/boost: the string calls the game makes; main.cpp
+# reads its few options itself). PlatformFolders is not used: the settings
+# go in the drawer's user/.
+
+STOVE   ?= $(HOME)/CradleLab/toolchain/openamigagcc-16.2.0-open4-x86_64-linux
+NDK     ?= $(HOME)/CradleLab/gfopensdk/OpenNDK/Include_H
+SDL2KIT ?= /mnt/amigachrome/team2/deps/opengpu-sdk
+CC      = $(STOVE)/bin/m68k-amigaos-gcc
+CXX     = $(STOVE)/bin/m68k-amigaos-g++
+STRIP   = $(STOVE)/bin/m68k-amigaos-strip
+CPU     ?= -m68040 -m68881
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile (the kit's
+# sdl2-config gives it for GCC 16 too).
+OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+PROG    = BlockAttack
+OUT     = dist/BlockAttack
+FMT     = source/misc/embedded_libs/fmt-8.1.1
+
+DEFS    = -D__amigaos__ -DNDEBUG -DSTANDALONE=1
+INC     = -Iamiga/include -Isource/code/Libs/include \
+          -Isource/code/Libs/include/cereal/external -I$(FMT)/include \
+          -Iamiga/physfs -I$(SDL2KIT)/include -I$(SDL2KIT)/include/SDL2
+CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP
+CXXFLAGS = $(CFLAGS) $(DEFS) $(INC) -std=gnu++11 -Wno-psabi -include amiga/amiga_prelude.hpp
+PHYSFS_CFLAGS = -noixemul -O2 $(CPU) -std=gnu99 -DNDEBUG -MMD -MP \
+          -DPHYSFS_SUPPORTS_DEFAULT=0 -DPHYSFS_SUPPORTS_ZIP=1 -I$(NDK)
+LDFLAGS = -noixemul $(CPU)
+LIBS    = -L$(SDL2KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 \
+          -lpthread -latomic -lm
+
+SRC     = $(wildcard source/code/*.cpp source/code/sago/*.cpp)
+FMTSRC  = $(FMT)/src/format.cc
+PHYSFS_SRC = $(filter-out amiga/physfs/physfs_archiver_hog.c,$(wildcard amiga/physfs/*.c))
+CSRC    = amiga/amiga_start.c amiga/amiga_screens.c amiga/stack.c
+
+OBJS    = $(SRC:%.cpp=$(OBJDIR)/%.o) $(FMTSRC:%.cc=$(OBJDIR)/%.o) \
+          $(PHYSFS_SRC:%.c=$(OBJDIR)/%.o) $(CSRC:%.c=$(OBJDIR)/%.o)
+ICONS   = $(wildcard amiga/icons/*.info)
+
+all: $(BUILD)/$(PROG)
+
+$(BUILD)/$(PROG): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@.debug $(OBJS) $(LIBS)
+	$(STRIP) -o $@ $@.debug
+
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJDIR)/%.o: %.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJDIR)/amiga/physfs/%.o: amiga/physfs/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(PHYSFS_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/amiga/%.o: amiga/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(NDK) -Wall -Wextra -c -o $@ $<
+
+# The drawer: the program, the game's data unpacked (its 8-bit RGB PNGs
+# stored as RGBA: amiga/tools/png_rgba.py; SDL2_image.module 0.6 damages
+# the host's heap decoding some of them), ReadMe and the licences.
+dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
+	rm -rf $(OUT) && mkdir -p $(OUT)
+	cp $(BUILD)/$(PROG) $(OUT)/
+	cp -R Game/data $(OUT)/data
+	python3 amiga/tools/png_rgba.py $(OUT)/data
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp COPYING $(OUT)/COPYING.txt
+	cp amiga/physfs/LICENSE.txt $(OUT)/PhysicsFS-LICENSE.txt
+	cp amiga/icons/BlockAttack.info amiga/icons/ReadMe.info $(OUT)/
+	for f in COPYING.txt PhysicsFS-LICENSE.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	cd $(OUT) && find . -mindepth 1 -type d | while read d; do cp $(CURDIR)/amiga/icons/Folder.info "$$d.info"; done
+	cp amiga/icons/BlockAttack-drawer.info dist/BlockAttack.info
+
+-include $(OBJS:.o=.d)
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all clean dist
