@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# This file is based on the guide from https://itch.io/docs/itch/integrating/platforms/linux.html
+
+# Move to script's directory
+cd "`dirname "$0"`"
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./x86_64/
+./x86_64/blockattack "$@"

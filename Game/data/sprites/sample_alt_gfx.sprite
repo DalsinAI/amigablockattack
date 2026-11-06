@@ -1,0 +1,32 @@
+{
+
+
+"back_board_sample_snow" :  {
+	"texture" : "alt_gfx/back_board_sample_snow",
+	"topx" : 0,
+	"topy" : 0,
+	"height" : 1200,
+	"width" : 600,
+	"number_of_frames" : 1,
+	"frame_time" : 1
+}
+,"background_sample" :  {
+        "texture" : "alt_gfx/background",
+        "topx" : 0,
+        "topy" : 0,
+        "height" : 150,
+        "width" : 150,
+        "number_of_frames" : 1,
+        "frame_time" : 1
+}
+,"board_back_back_mirror" : {
+	"texture" : "alt_gfx/board_back_back_mirror",
+	"topx" : 0,
+	"topy" : 0,
+	"height" : 699,
+	"width" : 476,
+	"number_of_frames" : 1,
+	"frame_time" : 1
+}
+
+}
