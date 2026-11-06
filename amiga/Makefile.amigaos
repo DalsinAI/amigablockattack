@@ -77,7 +77,9 @@ $(OBJDIR)/amiga/%.o: amiga/%.c
 
 # The drawer: the program, the game's data unpacked (its 8-bit RGB PNGs
 # stored as RGBA: amiga/tools/png_rgba.py; SDL2_image.module 0.6 damages
-# the host's heap decoding some of them), ReadMe and the licences.
+# the host's heap decoding some of them), ReadMe, the licences and AUTH.txt
+# (who made each data file, under which licence: upstream ships it in
+# blockattack.data).
 dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	rm -rf $(OUT) && mkdir -p $(OUT)
 	cp $(BUILD)/$(PROG) $(OUT)/
@@ -85,9 +87,10 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	python3 amiga/tools/png_rgba.py $(OUT)/data
 	cp AMIGA_PORT.md $(OUT)/ReadMe
 	cp COPYING $(OUT)/COPYING.txt
+	cp source/AUTH $(OUT)/AUTH.txt
 	cp amiga/physfs/LICENSE.txt $(OUT)/PhysicsFS-LICENSE.txt
 	cp amiga/icons/BlockAttack.info amiga/icons/ReadMe.info $(OUT)/
-	for f in COPYING.txt PhysicsFS-LICENSE.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	for f in COPYING.txt AUTH.txt PhysicsFS-LICENSE.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
 	cd $(OUT) && find . -mindepth 1 -type d | while read d; do cp $(CURDIR)/amiga/icons/Folder.info "$$d.info"; done
 	cp amiga/icons/BlockAttack-drawer.info dist/BlockAttack.info
 

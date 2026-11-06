@@ -72,7 +72,8 @@ What was changed
 Licences
 --------
 
-Block Attack: GPL 2 or later (COPYING); its fonts and other data as
-Game/data says. {fmt}: MIT. PhysicsFS: zlib (PhysicsFS-LICENSE.txt). The
+Block Attack: GPL 2 or later (COPYING); its data (fonts, pictures, sounds,
+music: GPL 2, CC-BY 3.0, CC0 and others) file by file in AUTH.txt
+(upstream's source/AUTH). {fmt}: MIT. PhysicsFS: zlib (PhysicsFS-LICENSE.txt). The
 Amiga files (amiga/): GPL 2 or later, the AmiCradle Team (amiga/physfs:
 zlib, like PhysicsFS).
