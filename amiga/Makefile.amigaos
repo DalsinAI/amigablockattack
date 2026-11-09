@@ -86,6 +86,7 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	cp -R Game/data $(OUT)/data
 	python3 amiga/tools/png_rgba.py $(OUT)/data
 	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp amiga/Controls $(OUT)/Controls
 	cp COPYING $(OUT)/COPYING.txt
 	cp source/AUTH $(OUT)/AUTH.txt
 	cp amiga/physfs/LICENSE.txt $(OUT)/PhysicsFS-LICENSE.txt
