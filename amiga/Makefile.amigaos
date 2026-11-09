@@ -91,7 +91,6 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	cp amiga/physfs/LICENSE.txt $(OUT)/PhysicsFS-LICENSE.txt
 	cp amiga/icons/BlockAttack.info amiga/icons/ReadMe.info $(OUT)/
 	for f in COPYING.txt AUTH.txt PhysicsFS-LICENSE.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
-	cd $(OUT) && find . -mindepth 1 -type d | while read d; do cp $(CURDIR)/amiga/icons/Folder.info "$$d.info"; done
 	cp amiga/icons/BlockAttack-drawer.info dist/BlockAttack.info
 
 -include $(OBJS:.o=.d)
