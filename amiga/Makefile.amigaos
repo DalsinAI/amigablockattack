@@ -3,14 +3,18 @@
 #
 #   make -f amiga/Makefile.amigaos -j2 dist \
 #        STOVE=/path/to/openamigagcc-16.2.0-open4 \
-#        NDK=/path/to/OpenNDK/Include_H SDL2KIT=/path/to/opengpu-sdk
+#        NDK=/path/to/OpenNDK/Include_H SDL2KIT=/path/to/opengpu-sdk \
+#        PHYSFSKIT=/path/to/physfs-sdk
 #
 # CMake is not run: these are CMakeLists.txt's sources (source/code and
 # source/code/sago), its C++11 and the embedded {fmt} 8.1.1. SDL2KIT is the
 # OpenGPU developer kit (SDL2, SDL2_image, SDL2_mixer, SDL2_ttf: the
-# program's halves of LIBS:OpenGPU's modules). PhysicsFS 3.2.0 is compiled
-# in from amiga/physfs (the Team's, with its AmigaOS platform file, as in
-# amigadxxrebirth). No gettext (amiga/include/libintl.h: English) and no
+# program's halves of LIBS:OpenGPU's modules). PhysicsFS 3.2.0 is
+# LIBS:physfs.library (DalsinAI/gfopenphysfs): PHYSFSKIT has its
+# include/physfs.h and lib/libphysfs_auto.a, which opens the library before
+# main(). The GFOpenGPU kit carries both (so PHYSFSKIT defaults to SDL2KIT);
+# so do gfopenphysfs build-amiga.sh's OUT/sdk and the Open SDK (there:
+# PHYSFS_INC=$(SDK)/Include PHYSFS_LIB=$(SDK)/Lib/build/<prefix>). No gettext (amiga/include/libintl.h: English) and no
 # Boost (amiga/include/boost: the string calls the game makes; main.cpp
 # reads its few options itself). PlatformFolders is not used: the settings
 # go in the drawer's user/.
@@ -18,6 +22,9 @@
 STOVE   ?= $(HOME)/CradleLab/toolchain/openamigagcc-16.2.0-open4-x86_64-linux
 NDK     ?= $(HOME)/CradleLab/gfopensdk/OpenNDK/Include_H
 SDL2KIT ?= /mnt/amigachrome/team2/deps/opengpu-sdk
+PHYSFSKIT ?= $(SDL2KIT)
+PHYSFS_INC ?= $(PHYSFSKIT)/include
+PHYSFS_LIB ?= $(PHYSFSKIT)/lib
 CC      = $(STOVE)/bin/m68k-amigaos-gcc
 CXX     = $(STOVE)/bin/m68k-amigaos-g++
 STRIP   = $(STOVE)/bin/m68k-amigaos-strip
@@ -35,22 +42,20 @@ FMT     = source/misc/embedded_libs/fmt-8.1.1
 DEFS    = -D__amigaos__ -DNDEBUG -DSTANDALONE=1
 INC     = -Iamiga/include -Isource/code/Libs/include \
           -Isource/code/Libs/include/cereal/external -I$(FMT)/include \
-          -Iamiga/physfs -I$(SDL2KIT)/include -I$(SDL2KIT)/include/SDL2
+          -I$(PHYSFS_INC) -I$(SDL2KIT)/include -I$(SDL2KIT)/include/SDL2 \
+          -idirafter $(NDK)
 CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP
 CXXFLAGS = $(CFLAGS) $(DEFS) $(INC) -std=gnu++11 -Wno-psabi -include amiga/amiga_prelude.hpp
-PHYSFS_CFLAGS = -noixemul -O2 $(CPU) -std=gnu99 -DNDEBUG -MMD -MP \
-          -DPHYSFS_SUPPORTS_DEFAULT=0 -DPHYSFS_SUPPORTS_ZIP=1 -I$(NDK)
 LDFLAGS = -noixemul $(CPU)
-LIBS    = -L$(SDL2KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 \
+LIBS    = -L$(PHYSFS_LIB) -lphysfs_auto -L$(SDL2KIT)/lib -lSDL2_ttf -lSDL2_mixer -lSDL2_image -lSDL2 \
           -lpthread -latomic -lm
 
 SRC     = $(wildcard source/code/*.cpp source/code/sago/*.cpp)
 FMTSRC  = $(FMT)/src/format.cc
-PHYSFS_SRC = $(filter-out amiga/physfs/physfs_archiver_hog.c,$(wildcard amiga/physfs/*.c))
 CSRC    = amiga/amiga_start.c amiga/amiga_screens.c amiga/stack.c
 
 OBJS    = $(SRC:%.cpp=$(OBJDIR)/%.o) $(FMTSRC:%.cc=$(OBJDIR)/%.o) \
-          $(PHYSFS_SRC:%.c=$(OBJDIR)/%.o) $(CSRC:%.c=$(OBJDIR)/%.o)
+          $(CSRC:%.c=$(OBJDIR)/%.o)
 ICONS   = $(wildcard amiga/icons/*.info)
 
 all: $(BUILD)/$(PROG)
@@ -66,10 +71,6 @@ $(OBJDIR)/%.o: %.cpp
 $(OBJDIR)/%.o: %.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-$(OBJDIR)/amiga/physfs/%.o: amiga/physfs/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(PHYSFS_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/amiga/%.o: amiga/%.c
 	@mkdir -p $(dir $@)
@@ -89,9 +90,8 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	cp amiga/Controls $(OUT)/Controls
 	cp COPYING $(OUT)/COPYING.txt
 	cp source/AUTH $(OUT)/AUTH.txt
-	cp amiga/physfs/LICENSE.txt $(OUT)/PhysicsFS-LICENSE.txt
 	cp amiga/icons/BlockAttack.info amiga/icons/ReadMe.info $(OUT)/
-	for f in COPYING.txt AUTH.txt PhysicsFS-LICENSE.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	for f in COPYING.txt AUTH.txt; do cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
 	cp amiga/icons/BlockAttack-drawer.info dist/BlockAttack.info
 
 -include $(OBJS:.o=.d)
