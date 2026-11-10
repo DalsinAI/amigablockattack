@@ -15,6 +15,13 @@ endless game (the stack rising, the cursor moving, the clock and the
 score), the exit sign back to the menus, and Exit back to the Shell;
 the settings, statistics and replay drawers made in user/.
 
+9 November 2026: PhysicsFS is no longer compiled in. The game opens
+LIBS:physfs.library (gfopenphysfs 1.1), one copy of PhysicsFS for every
+program, and is 73 KB smaller. Tested in a lab of Instance-40 (the Team's
+OpenROM): the menus and a single-player game from the drawer's data/
+through the library, user/ made and written through it, Ctrl-C back to
+the Shell, and PhysFSTest passing beside the running game.
+
 
 What you need
 -------------
@@ -24,6 +31,9 @@ What you need
 - OpenGPU 0.6 or later: opengpu.library and LIBS:OpenGPU/SDL2.module,
   SDL2_image.module, SDL2_mixer.module and SDL2_ttf.module (installed by
   OpenUp).
+- physfs.library 1 or later in LIBS: (GFOpenUp's GFOpenGPU part installs
+  it). Without it the game stops at once with "This program needs
+  physfs.library 1 or newer in LIBS:".
 
 
 How to play
@@ -60,8 +70,11 @@ Building
 
     make -f amiga/Makefile.amigaos -j2 dist
 
-with GFOpenAmigaGCC 16.2.0-open4, the OpenNDK headers and the OpenGPU kit
-(see the Makefile's head). The drawer is dist/BlockAttack (and
+with GFOpenAmigaGCC 16.2.0-open4, the OpenNDK headers, the OpenGPU kit
+and physfs.library's SDK files: physfs.h and libphysfs_auto.a, from the
+GFOpenGPU kit, the Open SDK (PHYSFS_INC=$(SDK)/Include
+PHYSFS_LIB=$(SDK)/Lib/build/m68k-amigaos) or gfopenphysfs's own build
+(PHYSFSKIT=build/os3/sdk); see the Makefile's head. The drawer is dist/BlockAttack (and
 dist/BlockAttack.info).
 
 
@@ -83,8 +96,9 @@ What was changed
 - amiga/amiga_prelude.hpp (included before every file): std::strtoll,
   stoll and the other C99 calls the GCC 16 stove's libstdc++ for the 68040
   leaves out, and <algorithm>, which upstream had through Boost.
-- amiga/physfs: PhysicsFS 3.2.0 with its AmigaOS platform file (as in the
-  Team's DXX-Rebirth port), compiled in.
+- PhysicsFS 3.2.0 is LIBS:physfs.library (DalsinAI/gfopenphysfs), linked
+  with -lphysfs_auto, which opens it before main(). Until 9 November it
+  was compiled in from amiga/physfs.
 - The drawer's 8-bit RGB PNGs are stored as RGBA (amiga/tools/png_rgba.py:
   SDL2_image.module 0.6 damages the host's heap decoding some of them).
 
@@ -94,6 +108,6 @@ Licences
 
 Block Attack: GPL 2 or later (COPYING); its data (fonts, pictures, sounds,
 music: GPL 2, CC-BY 3.0, CC0 and others) file by file in AUTH.txt
-(upstream's source/AUTH). {fmt}: MIT. PhysicsFS: zlib (PhysicsFS-LICENSE.txt). The
-Amiga files (amiga/): GPL 2 or later, the AmiCradle Team (amiga/physfs:
-zlib, like PhysicsFS).
+(upstream's source/AUTH). {fmt}: MIT. The Amiga files (amiga/): GPL 2
+or later, the AmiCradle Team. PhysicsFS (zlib) is not in the program: it
+is physfs.library, which carries its own licence.
